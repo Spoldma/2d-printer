@@ -1,12 +1,5 @@
 #include <Arduino.h>
-
-// put function declarations here:
-int myFunction(int, int);
-
-
 #include "stepperMotor.h"
-/* For the servo we use a built-in header file Servo.h */
-#include <Servo.h>
 
 // MOTOR 1
 #define M1_ENB 9
@@ -18,45 +11,38 @@ int myFunction(int, int);
 #define M2_STEP 5
 #define M2_DIR 6
 
-#define SERVO_EXTENDED 0
-#define SERVO_RETRACTED 90
-
-/* Assuming 1/8 microstepping. 1.8 degrees for 1 full step.
-So a total of 200 full steps for 360 degrees, multiplied by 8, we get 1600 */
-#define STEPS_PER_REVOLUTION 1600
-
-static int direction = 0;
-static bool isInitComplete = false;
-Servo myServo;
+// Assuming 1/8 microstepping with 1.8 degree steppers.
+static const uint32_t STEPS_PER_REVOLUTION = 1600;
+static const uint32_t STEP_INTERVAL_US = 800;
+static const uint32_t PAUSE_MS = 1000;
 
 void setup() {
+  Serial.begin(115200);
   Stepper_Init();
-
   pinMode(LED_BUILTIN, OUTPUT);
 
-  //enable motors
-  digitalWrite(M1_ENB, LOW);
-  digitalWrite(M2_ENB, HIGH);
+  // DRV8825 enable pin is active LOW.
+  //digitalWrite(M1_ENB, LOW);
+  //digitalWrite(M2_ENB, LOW);
+
+  Serial.println("Stepper direction test started.");
 }
 
 void loop() {
   digitalWrite(LED_BUILTIN, HIGH);
 
-  Stepper_MoveBlocking(MOTOR_1, 800, 1, STEPS_PER_REVOLUTION);
-  Stepper_MoveBlocking(MOTOR_2, 800, 1, STEPS_PER_REVOLUTION);
+  Serial.println("Phase 1: motor DIR=1");
+  Stepper_StartNonBlocking(MOTOR_1, STEP_INTERVAL_US, 1, STEPS_PER_REVOLUTION);
+  while(Stepper_IsBusy());
   
+  delay(1000);
+
+  Serial.println("Phase 2: motors DIR=0");
+  Stepper_StartNonBlocking(MOTOR_1, STEP_INTERVAL_US, 0, STEPS_PER_REVOLUTION);
+  while(Stepper_IsBusy());
 
   delay(1000);
 
-  Stepper_MoveBlocking(MOTOR_1, 800, 0, STEPS_PER_REVOLUTION);
-  Stepper_MoveBlocking(MOTOR_2, 800, 0, STEPS_PER_REVOLUTION);
-
   digitalWrite(LED_BUILTIN, LOW);
-
-  delay(1000);       
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  delay(1000);
 }
