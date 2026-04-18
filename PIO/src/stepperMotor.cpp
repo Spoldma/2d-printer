@@ -1,40 +1,39 @@
 #include "stepperMotor.h"
-#include <FspTimer.h>
-#include "Arduino.h"
+
+#include <Arduino.h>
+#include <esp_timer.h>
+
 #include "config.h"
 
-typedef struct
-{
+typedef struct {
   uint8_t dirPin;
   uint8_t stepPin;
   uint8_t enablePin;
-
-  FspTimer * timer;
-  GPTimerCbk_f callback;
+  esp_timer_handle_t timer;
 } stepMotorConf_T;
 
-typedef struct
-{
-  uint32_t step_target;
-  uint32_t curr_step;
-  bool isIdle;
-
+typedef struct {
+  volatile uint32_t step_target;
+  volatile uint32_t curr_step;
+  volatile bool isIdle;
+  volatile bool stepLevel;
 } stepMotorState_T;
 
-FspTimer timerA;
-FspTimer timerB;
+static void stepper_timer_cb(void *arg);
 
-void stepper1_timer_cb(timer_callback_args_t *);
-void stepper2_timer_cb(timer_callback_args_t *);
-
-/* Configuration structure for the steppers.*/
-const stepMotorConf_T stepper_conf[NUMBER_OF_STEPPER_MOTORS] = 
-{
-  {.dirPin = Config::M1_DIR, .stepPin = Config::M1_STEP , .enablePin = Config::M1_ENB, .timer = &timerA , .callback = stepper1_timer_cb }, /* MOTOR_1 */
-  {.dirPin = Config::M2_DIR, .stepPin = Config::M2_STEP , .enablePin = Config::M2_ENB, .timer = &timerB , .callback = stepper2_timer_cb }  /* MOTOR_2 */
+/* Configuration structure for the steppers. */
+static stepMotorConf_T stepper_conf[NUMBER_OF_STEPPER_MOTORS] = {
+    {.dirPin = Config::M1_DIR,
+     .stepPin = Config::M1_STEP,
+     .enablePin = Config::M1_ENB,
+     .timer = nullptr}, /* MOTOR_1 */
+    {.dirPin = Config::M2_DIR,
+     .stepPin = Config::M2_STEP,
+     .enablePin = Config::M2_ENB,
+     .timer = nullptr} /* MOTOR_2 */
 };
 
-volatile stepMotorState_T stepper_state[NUMBER_OF_STEPPER_MOTORS];
+static volatile stepMotorState_T stepper_state[NUMBER_OF_STEPPER_MOTORS];
 
 /**
  * @brief Initialize all stepper motors and associated timers.
@@ -45,29 +44,29 @@ volatile stepMotorState_T stepper_state[NUMBER_OF_STEPPER_MOTORS];
  */
 void Stepper_Init(void)
 {
-  for (int x = 0; x < NUMBER_OF_STEPPER_MOTORS; x++)  
-  {
-    uint8_t timerIndex;
-    uint8_t type = GPT_TIMER;
+  for (int x = 0; x < NUMBER_OF_STEPPER_MOTORS; x++) {
     volatile stepMotorState_T * state_ptr = &stepper_state[x];
-    const stepMotorConf_T * conf_ptr = &stepper_conf[x];
+    stepMotorConf_T * conf_ptr = &stepper_conf[x];
 
     state_ptr->step_target = 0;
     state_ptr->curr_step = 0;
     state_ptr->isIdle = true;
+    state_ptr->stepLevel = false;
 
     pinMode(conf_ptr->dirPin, OUTPUT);
     pinMode(conf_ptr->stepPin, OUTPUT);
     pinMode(conf_ptr->enablePin, OUTPUT);
+    digitalWrite(conf_ptr->stepPin, LOW);
+    digitalWrite(conf_ptr->enablePin, HIGH);
 
-    // Get an available timer (GPT)
-    type = GPT_TIMER;
-    int8_t channel = FspTimer::get_available_timer(type);
-    
-    conf_ptr->timer->begin(TIMER_MODE_PERIODIC, type, channel, 1000.0f, 1.000f, conf_ptr->callback, nullptr);
-
-    conf_ptr->timer->setup_overflow_irq();
-    conf_ptr->timer->open();
+    if (conf_ptr->timer == nullptr) {
+      esp_timer_create_args_t timerArgs = {};
+      timerArgs.callback = &stepper_timer_cb;
+      timerArgs.arg = reinterpret_cast<void *>(static_cast<uintptr_t>(x));
+      timerArgs.dispatch_method = ESP_TIMER_TASK;
+      timerArgs.name = (x == MOTOR_1) ? "stepper1" : "stepper2";
+      esp_timer_create(&timerArgs, &conf_ptr->timer);
+    }
   }
 }
 
@@ -84,31 +83,35 @@ void Stepper_Init(void)
  */
 void Stepper_StartNonBlocking(stepMotor_Id motor, uint32_t interval, uint8_t dir, uint32_t target)
 {
-  const stepMotorConf_T * conf_ptr;
-  
-  if (motor < NUMBER_OF_STEPPER_MOTORS)
-  {
-    conf_ptr = &stepper_conf[motor];
-    
-    if (stepper_state[motor].isIdle == true)
-    {
-      if (dir)
-      {
-        digitalWrite(conf_ptr->dirPin, HIGH);
-      }
-      else
-      {
-        digitalWrite(conf_ptr->dirPin, LOW);
-      }
-    
+  if (motor < NUMBER_OF_STEPPER_MOTORS) {
+    const stepMotorConf_T * conf_ptr = &stepper_conf[motor];
+
+    if (conf_ptr->timer == nullptr) {
+      return;
+    }
+
+    if (interval < 2) {
+      interval = 2;
+    }
+
+    if (target == 0) {
+      stepper_state[motor].isIdle = true;
+      return;
+    }
+
+    if (stepper_state[motor].isIdle == true) {
+      digitalWrite(conf_ptr->stepPin, LOW);
+      stepper_state[motor].stepLevel = false;
+
+      digitalWrite(conf_ptr->dirPin, dir ? HIGH : LOW);
       digitalWrite(conf_ptr->enablePin, LOW);
 
       stepper_state[motor].step_target = target;
       stepper_state[motor].curr_step = 0;
       stepper_state[motor].isIdle = false;
 
-      conf_ptr->timer->set_period_us(interval / 2);
-      conf_ptr->timer->start();
+      esp_timer_stop(conf_ptr->timer);
+      esp_timer_start_periodic(conf_ptr->timer, interval / 2);
     }
   }
 }
@@ -123,11 +126,15 @@ void Stepper_StartNonBlocking(stepMotor_Id motor, uint32_t interval, uint8_t dir
  */
 void Stepper_Stop(stepMotor_Id motor)
 {
-  if (motor < NUMBER_OF_STEPPER_MOTORS)
-  {
-    stepper_conf[motor].timer->stop();
+  if (motor < NUMBER_OF_STEPPER_MOTORS) {
+    const stepMotorConf_T * conf_ptr = &stepper_conf[motor];
+    if (conf_ptr->timer != nullptr) {
+      esp_timer_stop(conf_ptr->timer);
+    }
     stepper_state[motor].isIdle = true;
-    digitalWrite(stepper_conf[motor].enablePin, HIGH);
+    stepper_state[motor].stepLevel = false;
+    digitalWrite(conf_ptr->stepPin, LOW);
+    digitalWrite(conf_ptr->enablePin, HIGH);
   }
 }
 
@@ -145,26 +152,16 @@ void Stepper_Stop(stepMotor_Id motor)
  */
 void Stepper_MoveBlocking(stepMotor_Id motor, uint32_t interval, uint8_t dir, uint32_t number_of_steps)
 {
-  if (motor < NUMBER_OF_STEPPER_MOTORS)
-  {
+  if (motor < NUMBER_OF_STEPPER_MOTORS) {
     const stepMotorConf_T * conf_ptr = &stepper_conf[motor];
 
-    if (stepper_state[motor].isIdle == true)
-    {
-      if (dir)
-      {
-        digitalWrite(conf_ptr->dirPin, HIGH);
-      }
-      else
-      {
-        digitalWrite(conf_ptr->dirPin, LOW);
-      }
+    if (stepper_state[motor].isIdle == true) {
+      digitalWrite(conf_ptr->dirPin, dir ? HIGH : LOW);
 
       digitalWrite(conf_ptr->enablePin, LOW);
 
-      // Spin the stepper motor 1 revolution slowly:
-      for (int i = 0; i < number_of_steps; i++) 
-      {
+      // Spin the stepper motor with blocking step pulses.
+      for (uint32_t i = 0; i < number_of_steps; i++) {
         Stepper_StepOnce(motor, interval);
       }
 
@@ -186,7 +183,7 @@ void Stepper_StepOnce(stepMotor_Id motor, int interval)
 {
   const stepMotorConf_T * conf_ptr = &stepper_conf[motor];
 
-    // These four lines result in 1 step:
+  // These four lines result in 1 full step pulse.
   digitalWrite(conf_ptr->stepPin, HIGH);
   delayMicroseconds(interval / 2);
   digitalWrite(conf_ptr->stepPin, LOW);
@@ -202,10 +199,8 @@ void Stepper_StepOnce(stepMotor_Id motor, int interval)
 bool Stepper_IsBusy(void)
 { 
   bool res = false;
-  for (int x = 0; x < NUMBER_OF_STEPPER_MOTORS; x++)
-  {
-    if(stepper_state[x].isIdle == false)
-    {
+  for (int x = 0; x < NUMBER_OF_STEPPER_MOTORS; x++) {
+    if (stepper_state[x].isIdle == false) {
       res = true;
     }
   }
@@ -213,52 +208,29 @@ bool Stepper_IsBusy(void)
   return res;
 }
 
-/**
- * @brief Timer interrupt callback for Stepper Motor 1.
- *
- * Toggles the step pin to generate pulses. Step count is incremented
- * on the rising edge. Stops the motor when the target step count is reached.
- *
- * @param args Timer callback arguments (unused)
- */
-void stepper1_timer_cb(timer_callback_args_t *)
+static void stepper_timer_cb(void *arg)
 {
-  bool level = !digitalRead(stepper_conf[MOTOR_1].stepPin);
-  digitalWrite(stepper_conf[MOTOR_1].stepPin, level);
+  const stepMotor_Id motor = static_cast<stepMotor_Id>(reinterpret_cast<uintptr_t>(arg));
+  const stepMotorConf_T * conf_ptr = &stepper_conf[motor];
+  volatile stepMotorState_T * state_ptr = &stepper_state[motor];
 
-  /* Count only rising edge. */
-  if(level)
-  {
-    stepper_state[MOTOR_1].curr_step++;
+  if (state_ptr->isIdle) {
+    return;
   }
 
-  if (stepper_state[MOTOR_1].curr_step >= stepper_state[MOTOR_1].step_target)
-  {
-    Stepper_Stop(MOTOR_1);
-  }
-}
+  state_ptr->stepLevel = !state_ptr->stepLevel;
+  digitalWrite(conf_ptr->stepPin, state_ptr->stepLevel ? HIGH : LOW);
 
-/**
- * @brief Timer interrupt callback for Stepper Motor 2.
- *
- * Toggles the step pin to generate pulses. Step count is incremented
- * on the rising edge. Stops the motor when the target step count is reached.
- *
- * @param args Timer callback arguments (unused)
- */
-void stepper2_timer_cb(timer_callback_args_t *)
-{
-  bool level = !digitalRead(stepper_conf[MOTOR_2].stepPin);
-  digitalWrite(stepper_conf[MOTOR_2].stepPin, level);
-  
-  /* Count only rising edge. */
-  if(level)
-  {
-    stepper_state[MOTOR_2].curr_step++;
+  // Count only rising edge as one step.
+  if (state_ptr->stepLevel) {
+    state_ptr->curr_step++;
   }
 
-  if (stepper_state[MOTOR_2].curr_step >= stepper_state[MOTOR_2].step_target)
-  {
-    Stepper_Stop(MOTOR_2);
+  if (state_ptr->curr_step >= state_ptr->step_target) {
+    esp_timer_stop(conf_ptr->timer);
+    state_ptr->isIdle = true;
+    state_ptr->stepLevel = false;
+    digitalWrite(conf_ptr->stepPin, LOW);
+    digitalWrite(conf_ptr->enablePin, HIGH);
   }
 }

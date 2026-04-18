@@ -50,7 +50,7 @@ void setup() {
   g_penServo.write(Config::PEN_DOWN_ANGLE);
 
   Serial.begin(Config::SERIAL_BAUD_RATE);
-  pinMode(LED_BUILTIN, OUTPUT);
+  //pinMode(LED_BUILTIN, OUTPUT);
 
   PlotterState::init();
   Motion::init();

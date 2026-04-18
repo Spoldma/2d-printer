@@ -11,14 +11,17 @@ static const int16_t X_MAX = 199;
 static const int16_t Y_MIN = 0;
 static const int16_t Y_MAX = 289;
 
-static const uint8_t M1_ENB = 9;
-static const uint8_t M1_STEP = 7;
-static const uint8_t M1_DIR = 8;
-static const uint8_t M2_ENB = 10;
-static const uint8_t M2_STEP = 5;
-static const uint8_t M2_DIR = 6;
 
-static const uint8_t SERVO_PIN = 11;
+static const uint8_t M1_ENB = 18;
+static const uint8_t M1_STEP = 12;
+static const uint8_t M1_DIR = 14;
+
+static const uint8_t M2_ENB = 22;
+static const uint8_t M2_STEP = 23;
+static const uint8_t M2_DIR = 25;
+
+static const uint8_t SERVO_PIN = 26;
+
 static const uint8_t PEN_UP_ANGLE = 90;
 static const uint8_t PEN_DOWN_ANGLE = 0;
 
