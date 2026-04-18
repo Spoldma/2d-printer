@@ -49,6 +49,7 @@ StatusCode line(const Point &start, const Point &end) {
   }
 
   Motion::penDown();
+  delay(1000);
   Serial.println("[LINE] Moving to line end");
   status = Motion::moveTo(end);
   Motion::penUp();
