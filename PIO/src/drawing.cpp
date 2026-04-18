@@ -81,34 +81,34 @@ StatusCode square(const Point &topLeft, int16_t width, int16_t height) {
 
   delay(1000);
 
-  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y)});
-  if (status != StatusCode::OK) {
+  StatusCode status_1 = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y)});
+  if (status_1 != StatusCode::OK) {
     Serial.println("[SQUARE] Move to top right failed");
-    return status;
+    return status_1;
   }
 
   delay(250);
 
-  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y + height)});
-  if (status != StatusCode::OK) {
+  StatusCode status_2 = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y + height)});
+  if (status_2 != StatusCode::OK) {
     Serial.println("[SQUARE] Move to bottom right failed");
-    return status;
+    return status_2;
   }
 
   delay(250);
 
-  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x), static_cast<int16_t>(topLeft.y + height)});
-  if (status != StatusCode::OK) {
+  StatusCode status_3 = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x), static_cast<int16_t>(topLeft.y + height)});
+  if (status_3 != StatusCode::OK) {
     Serial.println("[SQUARE] Move to bottom left failed");
-    return status;
+    return status_3;
   }
 
   delay(250);
 
-  StatusCode status = Motion::moveTo(topLeft);
-  if (status != StatusCode::OK) {
+  StatusCode status_4 = Motion::moveTo(topLeft);
+  if (status_4 != StatusCode::OK) {
     Serial.println("[SQUARE] Move back to start failed");
-    return status;
+    return status_4;
   }
 
   delay(500);
@@ -126,7 +126,7 @@ StatusCode circle(const Point &center, int16_t radius) {
     return StatusCode::ERR_RANGE;
   }
 
-  StatusCode status = arc(center, radius, 0, 359)
+  StatusCode status = arc(center, radius, 0, 359);
   if (status != StatusCode::OK) {
     Serial.println("[CIRCLE] Drawing circle failed");
   }

@@ -169,19 +169,21 @@ StatusCode moveTo(const Point &target) {
   return StatusCode::OK;
 }
 
-void penUp() {
+StatusCode penUp() {
   if (g_servoAttached) {
     g_penServo.write(Config::PEN_UP_ANGLE);
   }
   PlotterState::setPenDown(false);
   Serial.println("[PEN] Pen UP");
+  return StatusCode::OK;
 }
 
-void penDown() {
+StatusCode penDown() {
   if (g_servoAttached) {
     g_penServo.write(Config::PEN_DOWN_ANGLE);
   }
   PlotterState::setPenDown(true);
   Serial.println("[PEN] Pen DOWN");
+  return StatusCode::OK;
 }
 }  // namespace Motion

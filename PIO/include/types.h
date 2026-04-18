@@ -12,6 +12,8 @@ enum class StatusCode : uint8_t {
 
 enum class CommandType : uint8_t {
   HOME = 0,
+  PENUP,
+  PENDOWN,
   MOV,
   DOT,
   LINE,

@@ -8,8 +8,8 @@ void init();
 StatusCode home();
 StatusCode moveTo(const Point &target);
 bool isPointInRange(const Point &point);
-void penUp();
-void penDown();
+StatusCode penUp();
+StatusCode penDown();
 }  // namespace Motion
 
 #endif

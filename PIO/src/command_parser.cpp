@@ -83,6 +83,14 @@ StatusCode parse(const String &inputLine, Command &outCommand) {
     outCommand.type = CommandType::LOGO;
     return StatusCode::OK;
   }
+  if (line == "PENUP") {
+    outCommand.type = CommandType::PENUP;
+    return StatusCode::OK;
+  }
+  if (line == "PENDOWN") {
+    outCommand.type = CommandType::PENDOWN;
+    return StatusCode::OK;
+  }
   if (parseWithPrefix(line, "MOV:", 2, CommandType::MOV, outCommand)) {
     return StatusCode::OK;
   }

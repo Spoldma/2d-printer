@@ -40,6 +40,10 @@ StatusCode execute(const Command &command) {
                           static_cast<int16_t>(command.args[4]));
     case CommandType::LOGO:
       return Drawing::logo();
+    case CommandType::PENUP:
+      return Motion::penUp();
+    case CommandType::PENDOWN:
+      return Motion::penDown();
     default:
       return StatusCode::ERR_UNSUPPORTED;
   }
