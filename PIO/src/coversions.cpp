@@ -4,16 +4,16 @@
 #include "conversions.h"
 
 
-StepIntervals calculateStepIntervals(uint32_t dx, uint32_t dy)
+StepIntervals calculateStepIntervals(StepCount steps)
 {
     StepIntervals result{0, 0};
 
-    if (dx == 0 && dy == 0) {
+    if (steps.x == 0 && steps.y == 0) {
         return result;
     }
 
-    uint32_t maxSteps = std::max(dx, dy);
-    uint32_t minSteps = std::min(dx, dy);
+    uint32_t maxSteps = std::max(steps.x, steps.y);
+    uint32_t minSteps = std::min(steps.x, steps.y);
 
     double time = static_cast<double>(maxSteps) * Config::STEP_INTERVAL_US;
 
@@ -21,7 +21,7 @@ StepIntervals calculateStepIntervals(uint32_t dx, uint32_t dy)
         ? time / minSteps
         : 0.0;
 
-    if (dx >= dy) {
+    if (steps.x >= steps.y) {
         result.x = static_cast<uint32_t>(Config::STEP_INTERVAL_US);
         result.y = static_cast<uint32_t>(smallerInterval);
     } else {
@@ -30,4 +30,13 @@ StepIntervals calculateStepIntervals(uint32_t dx, uint32_t dy)
     }
 
     return result;
+}
+
+
+StepCount calculateStepCount(uint32_t dx, uint32_t dy)
+{
+    return StepCount {
+        static_cast<uint32_t>(dx * Config::MM_TO_STEP),
+        static_cast<uint32_t>(dy * Config::MM_TO_STEP)
+    };
 }

@@ -22,7 +22,9 @@ static const uint8_t SERVO_PIN = 11;
 static const uint8_t PEN_UP_ANGLE = 90;
 static const uint8_t PEN_DOWN_ANGLE = 0;
 
-static const uint32_t STEP_INTERVAL_US = 800;
+static const double MM_TO_STEP = 5.3497459859557216536129681510485;
+
+static const uint32_t STEP_INTERVAL_US = 5000;
 }  // namespace Config
 
 #endif

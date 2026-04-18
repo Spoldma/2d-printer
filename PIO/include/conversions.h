@@ -5,4 +5,11 @@ struct StepIntervals {
     uint32_t y;
 };
 
-StepIntervals calculateStepIntervals(uint32_t dx, uint32_t dy);
+struct StepCount {
+    uint32_t x;
+    uint32_t y;
+};
+
+StepIntervals calculateStepIntervals(StepCount steps);
+
+StepCount calculateStepCount(uint32_t dx, uint32_t dy);

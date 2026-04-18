@@ -6,6 +6,7 @@
 #include "config.h"
 #include "plotter_state.h"
 #include "stepperMotor.h"
+#include "conversions.h"
 
 namespace {
 Servo g_penServo;
@@ -58,8 +59,9 @@ StatusCode moveTo(const Point &target) {
   int32_t dx = static_cast<int32_t>(target.x) - static_cast<int32_t>(current.x);
   int32_t dy = static_cast<int32_t>(target.y) - static_cast<int32_t>(current.y);
 
-  uint32_t xSteps = static_cast<uint32_t>(abs(dx));
-  uint32_t ySteps = static_cast<uint32_t>(abs(dy));
+  StepCount steps = calculateStepCount(abs(dx), abs(dy));
+  StepIntervals intervals = calculateStepIntervals(steps);
+
   uint8_t xDir = (dx >= 0) ? 1 : 0;
   uint8_t yDir = (dy >= 0) ? 1 : 0;
 
@@ -72,25 +74,25 @@ StatusCode moveTo(const Point &target) {
   Serial.print(",");
   Serial.println(dy);
 
-  if (xSteps == 0 && ySteps == 0) {
+  if (steps.x == 0 && steps.y == 0) {
     Serial.println("[MOVE] Already at target");
     return StatusCode::OK;
   }
 
   // Start both axes with non-blocking calls so they run in parallel.
-  if (xSteps > 0) {
+  if (steps.x > 0) {
     Serial.print("[MOVE] MOTOR_1 start dir=");
     Serial.print(xDir);
     Serial.print(" steps=");
-    Serial.println(xSteps);
-    Stepper_StartNonBlocking(MOTOR_1, Config::STEP_INTERVAL_US, xDir, xSteps);
+    Serial.println(steps.x);
+    Stepper_StartNonBlocking(MOTOR_1, intervals.x, xDir, steps.x);
   }
-  if (ySteps > 0) {
+  if (steps.y > 0) {
     Serial.print("[MOVE] MOTOR_2 start dir=");
     Serial.print(yDir);
     Serial.print(" steps=");
-    Serial.println(ySteps);
-    Stepper_StartNonBlocking(MOTOR_2, Config::STEP_INTERVAL_US, yDir, ySteps);
+    Serial.println(steps.y);
+    Stepper_StartNonBlocking(MOTOR_2, intervals.y, yDir, steps.y);
   }
 
   while (Stepper_IsBusy()) {
