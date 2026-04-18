@@ -68,10 +68,6 @@ void init() {
   Serial.println("[INIT] Initializing stepper driver");
   Stepper_Init();
 
-  // DRV8825 enable pin is active LOW.
-  digitalWrite(Config::M1_ENB, LOW);
-  digitalWrite(Config::M2_ENB, LOW);
-
   Serial.print("[INIT] Attaching pen servo on pin ");
   Serial.println(Config::SERVO_PIN);
   g_penServo.attach(Config::SERVO_PIN);
