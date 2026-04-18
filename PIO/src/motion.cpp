@@ -11,6 +11,56 @@
 namespace {
 Servo g_penServo;
 bool g_servoAttached = false;
+
+bool isSwitchPressed(uint8_t pin) {
+  // Limit switches are wired as INPUT_PULLUP, so LOW means pressed.
+  return digitalRead(pin) == LOW;
+}
+
+StatusCode homeAxis(stepMotor_Id motor, uint8_t switchPin, uint8_t towardSwitchDir,
+                    const char *axisName) {
+  Serial.print("[HOME] ");
+  Serial.print(axisName);
+  Serial.println(" axis: start");
+
+  const uint8_t awayFromSwitchDir = towardSwitchDir ? 0 : 1;
+
+  // If already on the switch, back off first to guarantee a clean trigger.
+  if (isSwitchPressed(switchPin)) {
+    Serial.print("[HOME] ");
+    Serial.print(axisName);
+    Serial.println(" axis: switch already pressed, backing off");
+    Stepper_MoveBlocking(motor, Config::HOME_STEP_INTERVAL_US, awayFromSwitchDir,
+                         Config::HOME_BACKOFF_STEPS);
+  }
+
+  uint32_t movedSteps = 0;
+  while (!isSwitchPressed(switchPin) &&
+         movedSteps < Config::HOME_MAX_STEPS_PER_AXIS) {
+    Stepper_MoveBlocking(motor, Config::HOME_STEP_INTERVAL_US, towardSwitchDir, 1);
+    movedSteps++;
+  }
+
+  if (!isSwitchPressed(switchPin)) {
+    Serial.print("[HOME] ");
+    Serial.print(axisName);
+    Serial.println(" axis: FAILED (switch not reached)");
+    return StatusCode::ERR_RANGE;
+  }
+
+  delay(500);
+
+  Serial.print("[HOME] ");
+  Serial.print(axisName);
+  Serial.println(" axis: switch reached, backing off");
+  Stepper_MoveBlocking(motor, Config::HOME_STEP_INTERVAL_US, awayFromSwitchDir,
+                       Config::HOME_BACKOFF_STEPS);
+
+  Serial.print("[HOME] ");
+  Serial.print(axisName);
+  Serial.println(" axis: done");
+  return StatusCode::OK;
+}
 }  // namespace
 
 namespace Motion {
@@ -27,6 +77,13 @@ void init() {
   g_penServo.attach(Config::SERVO_PIN);
   g_servoAttached = true;
   penUp();
+
+  pinMode(Config::X_LIMIT_SWITCH_PIN, INPUT_PULLUP);
+  pinMode(Config::Y_LIMIT_SWITCH_PIN, INPUT_PULLUP);
+  Serial.print("[INIT] X limit pin: ");
+  Serial.println(Config::X_LIMIT_SWITCH_PIN);
+  Serial.print("[INIT] Y limit pin: ");
+  Serial.println(Config::Y_LIMIT_SWITCH_PIN);
   Serial.println("[INIT] Motion subsystem ready");
 }
 
@@ -37,9 +94,21 @@ bool isPointInRange(const Point &point) {
 
 StatusCode home() {
   Serial.println("[HOME] Start homing to 0,0");
-  // TODO: Replace this with real homing using endstops.
-  PlotterState::setPosition({0, 0});
   penUp();
+
+  StatusCode xStatus = homeAxis(MOTOR_1, Config::X_LIMIT_SWITCH_PIN,
+                                Config::HOME_X_TOWARD_SWITCH_DIR, "X");
+  if (xStatus != StatusCode::OK) {
+    return xStatus;
+  }
+
+  StatusCode yStatus = homeAxis(MOTOR_2, Config::Y_LIMIT_SWITCH_PIN,
+                                Config::HOME_Y_TOWARD_SWITCH_DIR, "Y");
+  if (yStatus != StatusCode::OK) {
+    return yStatus;
+  }
+
+  PlotterState::setPosition({0, 0});
   Serial.println("[HOME] Homing complete");
   return StatusCode::OK;
 }
