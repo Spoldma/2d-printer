@@ -102,11 +102,11 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
     return StatusCode::ERR_RANGE;
   }
 
-  float start_rad = startAngle * Config::PI / 180.0;
+  float start_rad = startAngle * Config::OUR_PI / 180.0;
   int32_t start_x = center.x + radius * cos(start_rad);
   int32_t start_y = center.y + radius * sin(start_rad);
 
-  StatusCode status = Motion::moveTo(toPoint(start_x, start_y));
+  StatusCode status = Motion::moveTo(Point {start_x, start_y});
   if (status != StatusCode::OK) {
     Serial.println("[ARC] Move to start failed");
     return status;
@@ -115,11 +115,11 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   Motion::penDown();
 
   for (float a = startAngle; a <= endAngle; a += Config::ARC_STEP_DEG) {
-      float rad = a * Config::PI / 180.0;
+      float rad = a * Config::OUR_PI / 180.0;
       int32_t x = center.x + radius * cos(rad);
       int32_t y = center.y + radius * sin(rad);
 
-      StatusCode status = Motion::moveTo(toPoint(x, y));
+      StatusCode status = Motion::moveTo(Point {x, y});
       if (status != StatusCode::OK) {
         Serial.println("[ARC] Incremental move failed");
         return status;
