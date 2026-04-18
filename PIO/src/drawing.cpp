@@ -89,7 +89,7 @@ StatusCode square(const Point &topLeft, int16_t width, int16_t height) {
 
   delay(250);
 
-  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y - height)});
+  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y + height)});
   if (status != StatusCode::OK) {
     Serial.println("[SQUARE] Move to bottom right failed");
     return status;
@@ -97,7 +97,7 @@ StatusCode square(const Point &topLeft, int16_t width, int16_t height) {
 
   delay(250);
 
-  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x), static_cast<int16_t>(topLeft.y - height)});
+  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x), static_cast<int16_t>(topLeft.y + height)});
   if (status != StatusCode::OK) {
     Serial.println("[SQUARE] Move to bottom left failed");
     return status;
