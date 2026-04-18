@@ -1,6 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <cmath>
 #include <stdint.h>
 
 namespace Config {
@@ -35,6 +36,9 @@ static const uint32_t HOME_MAX_STEPS_PER_AXIS = 20000;
 static const uint32_t HOME_BACKOFF_STEPS = 60;
 static const uint8_t HOME_X_TOWARD_SWITCH_DIR = 0;
 static const uint8_t HOME_Y_TOWARD_SWITCH_DIR = 0;
+
+static const double PI = 2*std::acos(0.0);
+static const float ARC_STEP_DEG = 1.0;
 }  // namespace Config
 
 #endif

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "motion.h"
+#include "config.h"
 
 namespace Drawing {
 StatusCode dot(const Point &at) {
@@ -101,10 +102,34 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
     return StatusCode::ERR_RANGE;
   }
 
-  // TODO: Implement arc approximation from startAngle to endAngle.
-  StatusCode status = Motion::moveTo(center);
+  float start_rad = startAngle * Config::PI / 180.0;
+  int32_t start_x = center.x + radius * cos(start_rad);
+  int32_t start_y = center.y + radius * sin(start_rad);
+
+  StatusCode status = Motion::moveTo(toPoint(start_x, start_y));
+  if (status != StatusCode::OK) {
+    Serial.println("[ARC] Move to start failed");
+    return status;
+  }
+
+  Motion::penDown();
+
+  for (float a = startAngle; a <= endAngle; a += Config::ARC_STEP_DEG) {
+      float rad = a * Config::PI / 180.0;
+      int32_t x = center.x + radius * cos(rad);
+      int32_t y = center.y + radius * sin(rad);
+
+      StatusCode status = Motion::moveTo(toPoint(x, y));
+      if (status != StatusCode::OK) {
+        Serial.println("[ARC] Incremental move failed");
+        return status;
+      }
+  }
+
+  Motion::penUp();
+
   Serial.println("[ARC] Template complete");
-  return status;
+  return StatusCode::OK;
 }
 
 StatusCode logo() {
