@@ -86,8 +86,11 @@ StatusCode circle(const Point &center, int16_t radius) {
     return StatusCode::ERR_RANGE;
   }
 
-  // TODO: Implement circle approximation with segmented motion.
-  StatusCode status = Motion::moveTo(center);
+  StatusCode status = arc(center, radius, 0, 359)
+  if (status != StatusCode::OK) {
+    Serial.println("[CIRCLE] Drawing circle failed");
+  }
+
   Serial.println("[CIRCLE] Template complete");
   return status;
 }
