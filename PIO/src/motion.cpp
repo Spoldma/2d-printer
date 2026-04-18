@@ -58,9 +58,51 @@ StatusCode moveTo(const Point &target) {
     return StatusCode::ERR_RANGE;
   }
 
-  // TODO: Convert XY millimeter grid to stepper steps and drive both motors.
+  Point current = PlotterState::getPosition();
+  int32_t dx = static_cast<int32_t>(target.x) - static_cast<int32_t>(current.x);
+  int32_t dy = static_cast<int32_t>(target.y) - static_cast<int32_t>(current.y);
+
+  uint32_t xSteps = static_cast<uint32_t>(abs(dx));
+  uint32_t ySteps = static_cast<uint32_t>(abs(dy));
+  uint8_t xDir = (dx >= 0) ? 1 : 0;
+  uint8_t yDir = (dy >= 0) ? 1 : 0;
+
+  Serial.print("[MOVE] Current ");
+  Serial.print(current.x);
+  Serial.print(",");
+  Serial.print(current.y);
+  Serial.print(" | Delta ");
+  Serial.print(dx);
+  Serial.print(",");
+  Serial.println(dy);
+
+  if (xSteps == 0 && ySteps == 0) {
+    Serial.println("[MOVE] Already at target");
+    return StatusCode::OK;
+  }
+
+  // Start both axes with non-blocking calls so they run in parallel.
+  if (xSteps > 0) {
+    Serial.print("[MOVE] MOTOR_1 start dir=");
+    Serial.print(xDir);
+    Serial.print(" steps=");
+    Serial.println(xSteps);
+    Stepper_StartNonBlocking(MOTOR_1, Config::STEP_INTERVAL_US, xDir, xSteps);
+  }
+  if (ySteps > 0) {
+    Serial.print("[MOVE] MOTOR_2 start dir=");
+    Serial.print(yDir);
+    Serial.print(" steps=");
+    Serial.println(ySteps);
+    Stepper_StartNonBlocking(MOTOR_2, Config::STEP_INTERVAL_US, yDir, ySteps);
+  }
+
+  while (Stepper_IsBusy()) {
+    delay(1);
+  }
+
   PlotterState::setPosition(target);
-  Serial.println("[MOVE] Target accepted (template move)");
+  Serial.println("[MOVE] Motion complete");
   return StatusCode::OK;
 }
 
