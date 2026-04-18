@@ -1,48 +1,77 @@
 #include <Arduino.h>
-#include "stepperMotor.h"
 
-// MOTOR 1
-#define M1_ENB 9
-#define M1_STEP 7
-#define M1_DIR 8
+#include "command_dispatcher.h"
+#include "command_parser.h"
+#include "config.h"
+#include "motion.h"
+#include "plotter_state.h"
 
-// MOTOR 2
-#define M2_ENB 10
-#define M2_STEP 5
-#define M2_DIR 6
+namespace {
+String g_serialLine;
 
-// Assuming 1/8 microstepping with 1.8 degree steppers.
-static const uint32_t STEPS_PER_REVOLUTION = 1600;
-static const uint32_t STEP_INTERVAL_US = 800;
-static const uint32_t PAUSE_MS = 1000;
+const char *statusToText(StatusCode code) {
+  switch (code) {
+    case StatusCode::OK:
+      return "OK";
+    case StatusCode::ERR_PARSE:
+      return "ERR_PARSE";
+    case StatusCode::ERR_RANGE:
+      return "ERR_RANGE";
+    case StatusCode::ERR_UNSUPPORTED:
+      return "ERR_UNSUPPORTED";
+    default:
+      return "ERR_UNKNOWN";
+  }
+}
+
+void processLine(const String &line) {
+  Serial.print("[SERIAL] RX: ");
+  Serial.println(line);
+  Command cmd = {};
+  StatusCode parseStatus = CommandParser::parse(line, cmd);
+  if (parseStatus != StatusCode::OK) {
+    Serial.print("ERR ");
+    Serial.println(statusToText(parseStatus));
+    return;
+  }
+
+  StatusCode execStatus = CommandDispatcher::execute(cmd);
+  Serial.println(statusToText(execStatus));
+}
+}  // namespace
+
+#include <Servo.h>
+Servo g_penServo;
 
 void setup() {
-  Serial.begin(115200);
-  Stepper_Init();
+  g_penServo.attach(Config::SERVO_PIN);
+  g_penServo.write(Config::PEN_UP_ANGLE);
+  delay(1000);
+  g_penServo.write(Config::PEN_DOWN_ANGLE);
+
+  Serial.begin(Config::SERIAL_BAUD_RATE);
   pinMode(LED_BUILTIN, OUTPUT);
 
-  // DRV8825 enable pin is active LOW.
-  //digitalWrite(M1_ENB, LOW);
-  //digitalWrite(M2_ENB, LOW);
+  PlotterState::init();
+  Motion::init();
 
-  Serial.println("Stepper direction test started.");
+  Serial.println("2D plotter template ready.");
 }
 
 void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);
+  while (Serial.available() > 0) {
+    char ch = static_cast<char>(Serial.read());
+    if (ch == '\r') {
+      continue;
+    }
 
-  Serial.println("Phase 1: motor DIR=1");
-  Stepper_StartNonBlocking(MOTOR_1, STEP_INTERVAL_US, 1, STEPS_PER_REVOLUTION);
-  while(Stepper_IsBusy());
-  
-  delay(1000);
-
-  Serial.println("Phase 2: motors DIR=0");
-  Stepper_StartNonBlocking(MOTOR_1, STEP_INTERVAL_US, 0, STEPS_PER_REVOLUTION);
-  while(Stepper_IsBusy());
-
-  delay(1000);
-
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
+    if (ch == '\n') {
+      if (g_serialLine.length() > 0) {
+        processLine(g_serialLine);
+        g_serialLine = "";
+      }
+    } else {
+      g_serialLine += ch;
+    }
+  }
 }
