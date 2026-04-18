@@ -16,8 +16,6 @@ namespace Motion {
 void init() {
   Serial.println("[INIT] Initializing stepper driver");
   Stepper_Init();
-  pinMode(Config::M1_ENB, OUTPUT);
-  pinMode(Config::M2_ENB, OUTPUT);
 
   // DRV8825 enable pin is active LOW.
   digitalWrite(Config::M1_ENB, LOW);
@@ -40,8 +38,6 @@ StatusCode home() {
   Serial.println("[HOME] Start homing to 0,0");
   // TODO: Replace this with real homing using endstops.
   PlotterState::setPosition({0, 0});
-  penDown();
-  delay(1000);
   penUp();
   Serial.println("[HOME] Homing complete");
   return StatusCode::OK;

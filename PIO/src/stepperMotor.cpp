@@ -1,6 +1,7 @@
 #include "stepperMotor.h"
 #include <FspTimer.h>
 #include "Arduino.h"
+#include "config.h"
 
 typedef struct
 {
@@ -29,8 +30,8 @@ void stepper2_timer_cb(timer_callback_args_t *);
 /* Configuration structure for the steppers.*/
 const stepMotorConf_T stepper_conf[NUMBER_OF_STEPPER_MOTORS] = 
 {
-  {.dirPin = 8, .stepPin = 7 , .enablePin = 9, .timer = &timerA , .callback = stepper1_timer_cb }, /* MOTOR_1 */
-  {.dirPin = 6, .stepPin = 5 , .enablePin = 10, .timer = &timerB , .callback = stepper2_timer_cb }  /* MOTOR_2 */
+  {.dirPin = Config::M1_DIR, .stepPin = Config::M1_STEP , .enablePin = Config::M1_ENB, .timer = &timerA , .callback = stepper1_timer_cb }, /* MOTOR_1 */
+  {.dirPin = Config::M2_DIR, .stepPin = Config::M2_STEP , .enablePin = Config::M2_ENB, .timer = &timerB , .callback = stepper2_timer_cb }  /* MOTOR_2 */
 };
 
 volatile stepMotorState_T stepper_state[NUMBER_OF_STEPPER_MOTORS];
