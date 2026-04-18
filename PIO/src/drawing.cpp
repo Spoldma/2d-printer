@@ -71,12 +71,52 @@ StatusCode square(const Point &topLeft, int16_t width, int16_t height) {
     return StatusCode::ERR_RANGE;
   }
 
-  // TODO: Draw full square path with four segments.
-  Point bottomRight = {static_cast<int16_t>(topLeft.x + width),
-                       static_cast<int16_t>(topLeft.y + height)};
-  StatusCode status = Motion::moveTo(bottomRight);
+  StatusCode status = Motion::moveTo(topLeft);
+  if (status != StatusCode::OK) {
+    Serial.println("[SQUARE] Move to start failed");
+    return status;
+  }
+
+  Motion::penDown();
+
+  delay(1000);
+
+  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y)});
+  if (status != StatusCode::OK) {
+    Serial.println("[SQUARE] Move to top right failed");
+    return status;
+  }
+
+  delay(250);
+
+  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x + width), static_cast<int16_t>(topLeft.y + height)});
+  if (status != StatusCode::OK) {
+    Serial.println("[SQUARE] Move to bottom right failed");
+    return status;
+  }
+
+  delay(250);
+
+  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(topLeft.x), static_cast<int16_t>(topLeft.y + height)});
+  if (status != StatusCode::OK) {
+    Serial.println("[SQUARE] Move to bottom left failed");
+    return status;
+  }
+
+  delay(250);
+
+  StatusCode status = Motion::moveTo(topLeft);
+  if (status != StatusCode::OK) {
+    Serial.println("[SQUARE] Move back to start failed");
+    return status;
+  }
+
+  delay(500);
+
+  Motion::penUp();
+
   Serial.println("[SQUARE] Template complete");
-  return status;
+  return StatusCode::OK;
 }
 
 StatusCode circle(const Point &center, int16_t radius) {
@@ -86,8 +126,11 @@ StatusCode circle(const Point &center, int16_t radius) {
     return StatusCode::ERR_RANGE;
   }
 
-  // TODO: Implement circle approximation with segmented motion.
-  StatusCode status = Motion::moveTo(center);
+  StatusCode status = arc(center, radius, 0, 359)
+  if (status != StatusCode::OK) {
+    Serial.println("[CIRCLE] Drawing circle failed");
+  }
+
   Serial.println("[CIRCLE] Template complete");
   return status;
 }
@@ -106,25 +149,31 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   int32_t start_x = center.x + radius * cos(start_rad);
   int32_t start_y = center.y + radius * sin(start_rad);
 
-  StatusCode status = Motion::moveTo(Point {start_x, start_y});
+  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(start_x), static_cast<int16_t>(start_y)});
   if (status != StatusCode::OK) {
     Serial.println("[ARC] Move to start failed");
     return status;
   }
 
+  delay(250);
+
   Motion::penDown();
+
+  delay(1000);
 
   for (float a = startAngle; a <= endAngle; a += Config::ARC_STEP_DEG) {
       float rad = a * Config::OUR_PI / 180.0;
       int32_t x = center.x + radius * cos(rad);
       int32_t y = center.y + radius * sin(rad);
 
-      StatusCode status = Motion::moveTo(Point {x, y});
+      StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(x), static_cast<int16_t>(y)});
       if (status != StatusCode::OK) {
         Serial.println("[ARC] Incremental move failed");
         return status;
       }
   }
+
+  delay(250);
 
   Motion::penUp();
 
