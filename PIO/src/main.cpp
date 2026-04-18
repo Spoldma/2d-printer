@@ -5,6 +5,7 @@
 #include "config.h"
 #include "motion.h"
 #include "plotter_state.h"
+#include "web_interface.h"
 
 namespace {
 String g_serialLine;
@@ -24,41 +25,40 @@ const char *statusToText(StatusCode code) {
   }
 }
 
-void processLine(const String &line) {
-  Serial.print("[SERIAL] RX: ");
+StatusCode processLine(const String &line, const char *sourceTag) {
+  Serial.print(sourceTag);
+  Serial.print(" RX: ");
   Serial.println(line);
   Command cmd = {};
   StatusCode parseStatus = CommandParser::parse(line, cmd);
   if (parseStatus != StatusCode::OK) {
-    Serial.print("ERR ");
+    Serial.print(sourceTag);
+    Serial.print(" ");
     Serial.println(statusToText(parseStatus));
-    return;
+    return parseStatus;
   }
 
   StatusCode execStatus = CommandDispatcher::execute(cmd);
+  Serial.print(sourceTag);
+  Serial.print(" ");
   Serial.println(statusToText(execStatus));
+  return execStatus;
 }
+
 }  // namespace
 
-#include <Servo.h>
-Servo g_penServo;
-
 void setup() {
-  g_penServo.attach(Config::SERVO_PIN);
-  g_penServo.write(Config::PEN_UP_ANGLE);
-  delay(1000);
-  g_penServo.write(Config::PEN_DOWN_ANGLE);
-
   Serial.begin(Config::SERIAL_BAUD_RATE);
-  //pinMode(LED_BUILTIN, OUTPUT);
-
   PlotterState::init();
   Motion::init();
+  WebInterface::begin(processLine);
 
   Serial.println("2D plotter template ready.");
 }
 
 void loop() {
+  WebInterface::handleClient();
+
   while (Serial.available() > 0) {
     char ch = static_cast<char>(Serial.read());
     if (ch == '\r') {
@@ -67,7 +67,7 @@ void loop() {
 
     if (ch == '\n') {
       if (g_serialLine.length() > 0) {
-        processLine(g_serialLine);
+        processLine(g_serialLine, "[SERIAL]");
         g_serialLine = "";
       }
     } else {
