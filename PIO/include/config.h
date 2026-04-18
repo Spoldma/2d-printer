@@ -6,6 +6,9 @@
 
 namespace Config {
 static const uint32_t SERIAL_BAUD_RATE = 115200;
+static const char *WIFI_AP_SSID = "Sander";
+static const char *WIFI_AP_PASSWORD = "tamm=gorilla";
+static const uint16_t WEB_PORT = 80;
 
 static const int16_t X_MIN = 0;
 static const int16_t X_MAX = 199;
@@ -25,8 +28,8 @@ static const uint8_t SERVO_PIN = 25;
 static const uint8_t X_LIMIT_SWITCH_PIN = 32;
 static const uint8_t Y_LIMIT_SWITCH_PIN = 33;
 
-static const uint8_t PEN_UP_ANGLE = 90;
-static const uint8_t PEN_DOWN_ANGLE = 0;
+static const uint8_t PEN_UP_ANGLE = 0;
+static const uint8_t PEN_DOWN_ANGLE = 90;
 
 static const double MM_TO_STEP = 5.3497459859557216536129681510485;
 
