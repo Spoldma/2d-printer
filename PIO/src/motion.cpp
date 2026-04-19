@@ -199,13 +199,13 @@ StatusCode smoothMove(const Point &target) {
         if (e2 > -dy) {
             err -= dy;
             current.x += sx;
-            Stepper_stepOnceWithDir(MOTOR1, sx);
+            Stepper_StepOnceWithDir(MOTOR_1, sx);
         }
 
         if (e2 < dx) {
             err += dx;
             current.y += sy;
-            Stepper_stepOnceWithDir(MOTOR2, sy);
+            Stepper_StepOnceWithDir(MOTOR_2, sy);
         }
 
         // control speed here
