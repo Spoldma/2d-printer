@@ -7,6 +7,7 @@ namespace Motion {
 void init();
 StatusCode home();
 StatusCode moveTo(const Point &target);
+StatusCode smoothMove(const Point &target);
 bool isPointInRange(const Point &point);
 StatusCode penUp();
 StatusCode penDown();

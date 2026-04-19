@@ -190,6 +190,17 @@ void Stepper_StepOnce(stepMotor_Id motor, int interval)
   delayMicroseconds(interval / 2);
 }
 
+void Stepper_StepOnceWithDir(stepMotor_Id motor, int8_t dir)
+{
+  const stepMotorConf_T * conf_ptr = &stepper_conf[motor];
+
+  digitalWrite(conf_ptr->dirPin, dir > 0 ? HIGH : LOW);
+
+  digitalWrite(conf_ptr->stepPin, HIGH);
+  delayMicroseconds(2);
+  digitalWrite(conf_ptr->stepPin, LOW);
+}
+
 /**
  * @brief Check if any stepper motor is currently active.
  *

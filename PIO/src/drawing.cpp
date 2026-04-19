@@ -166,7 +166,7 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
       int32_t x = center.x + radius * cos(rad);
       int32_t y = center.y + radius * sin(rad);
 
-      StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(x), static_cast<int16_t>(y)});
+      StatusCode status = Motion::smoothMove(Point {static_cast<int16_t>(lround(x)), static_cast<int16_t>(lround(y))});
       if (status != StatusCode::OK) {
         Serial.println("[ARC] Incremental move failed");
         return status;
