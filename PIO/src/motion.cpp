@@ -190,6 +190,7 @@ StatusCode smoothMove(const Point &target) {
 
     int err = dx - dy;
 
+    digitalWrite(Config::M1_ENB, LOW);
     while (true) {
         if (current.x == target.x && current.y == target.y)
             break;
@@ -199,18 +200,19 @@ StatusCode smoothMove(const Point &target) {
         if (e2 > -dy) {
             err -= dy;
             current.x += sx;
-            Stepper_StepOnceWithDir(MOTOR_1, sx > 0 ? 1 : 0);
+            Stepper_StepOnceWithDir(MOTOR_1, sx);
         }
 
         if (e2 < dx) {
             err += dx;
             current.y += sy;
-            Stepper_StepOnceWithDir(MOTOR_2, sy > 0 ? 1 : 0);
+            Stepper_StepOnceWithDir(MOTOR_2, sy);
         }
 
         // control speed here
         delayMicroseconds(Config::STEP_INTERVAL_US);
     }
+    digitalWrite(Config::M1_ENB, HIGH);
 
     PlotterState::setPosition(target);
     Serial.println("[MOVE] Motion complete");

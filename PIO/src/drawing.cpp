@@ -159,8 +159,8 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   for (float a = startAngle; a <= endAngle; a += Config::ARC_STEP_DEG) {
       float rad = a * Config::OUR_PI / 180.0;
       Point next = {
-          static_cast<int16_t>(lround(center.x + radius * cos(rad))),
-          static_cast<int16_t>(lround(center.y + radius * sin(rad)))
+          static_cast<int16_t>(lround(center.x + radius * 4.2 * cos(rad))),
+          static_cast<int16_t>(lround(center.y + radius * 4.2 * sin(rad)))
       };
 
       if (next.x == last.x && next.y == last.y) continue; // skip duplicate points

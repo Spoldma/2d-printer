@@ -192,9 +192,13 @@ void Stepper_StepOnce(stepMotor_Id motor, int interval)
 
 void Stepper_StepOnceWithDir(stepMotor_Id motor, int8_t dir)
 {
+  if (motor >= NUMBER_OF_STEPPER_MOTORS) {
+    return;
+  }
   const stepMotorConf_T * conf_ptr = &stepper_conf[motor];
 
   digitalWrite(conf_ptr->dirPin, dir > 0 ? HIGH : LOW);
+  
 
   digitalWrite(conf_ptr->stepPin, HIGH);
   delayMicroseconds(2);
