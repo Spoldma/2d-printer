@@ -167,7 +167,7 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
 
     if (next.x == last.x && next.y == last.y) continue;
 
-    status = Motion::moveTo(next);
+    status = Motion::smoothMove(next);
     if (status != StatusCode::OK) {
         Serial.println("[ARC] Incremental move failed");
         return status;
@@ -179,7 +179,7 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   Point end_point = {static_cast<int16_t>(lround(center.x + radius * cos(static_cast<double>(end_rad)))),
                      static_cast<int16_t>(lround(center.y + radius * sin(static_cast<double>(end_rad))))};
   if (last.x != end_point.x || last.y != end_point.y) {
-    status = Motion::moveTo(end_point);
+    status = Motion::smoothMove(end_point);
     if (status != StatusCode::OK) {
       Serial.println("[ARC] Move to arc end failed");
       return status;
@@ -189,6 +189,7 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   delay(250);
 
   Motion::penUp();
+  Motion::home();
 
   Serial.println("[ARC] Template complete");
   return StatusCode::OK;
@@ -239,7 +240,8 @@ StatusCode logo() {
   line(Point {149, 025}, Point {159, 025});
   line(Point {149, 020}, Point {157, 020});
   Motion::home();
-  circle(Point {155, 45}, 10);
+  line(Point {155, 45}, Point {60, 114});
+  circle(Point {65, 123}, 10);
   line(Point {57, 130}, Point {90, 180});
   line(Point {90, 180}, Point {14, 250});
   line(Point {14, 250}, Point {90, 193});
