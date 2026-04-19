@@ -31,18 +31,18 @@ static const uint8_t Y_LIMIT_SWITCH_PIN = 33;
 static const uint8_t PEN_UP_ANGLE = 0;
 static const uint8_t PEN_DOWN_ANGLE = 60;
 
-static const double MM_TO_STEP = 4.92;
+static const double MM_TO_STEP = 4.92 * 16;
 
-static const uint32_t STEP_INTERVAL_US = 5000;
-static const uint32_t HOME_STEP_INTERVAL_US = 3000;
-static const uint32_t HOME_MAX_STEPS_PER_AXIS = 20000;
-static const uint32_t HOME_BACKOFF_STEPS = 30;
+static const uint32_t STEP_INTERVAL_US = 5000 / 16;
+static const uint32_t HOME_STEP_INTERVAL_US = 3000 / 16;
+static const uint32_t HOME_MAX_STEPS_PER_AXIS = 200000;
+static const uint32_t HOME_BACKOFF_STEPS = 30 * 16;
 static const uint8_t HOME_X_TOWARD_SWITCH_DIR = 0;
 static const uint8_t HOME_Y_TOWARD_SWITCH_DIR = 1;
 
 static const double OUR_PI = 2*std::acos(0.0);
 static const float ARC_STEP_DEG = 1.0;
-static const float ARC_SEGMENT_LEN = 1.0f;
+static const float ARC_SEGMENT_LEN = 0.01f;
 }  // namespace Config
 
 #endif

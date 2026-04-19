@@ -131,16 +131,26 @@ StatusCode circle(const Point &center, int16_t radius) {
 StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
                int16_t endAngle) {
   Serial.println("[ARC] Start command");
-  if (radius < 0) {
+
+  if (radius <= 0) {
     Serial.println("[ARC] Invalid radius");
     return StatusCode::ERR_RANGE;
   }
 
-  float start_rad = startAngle * Config::OUR_PI / 180.0;
-  int32_t start_x = center.x + radius * cos(start_rad);
-  int32_t start_y = center.y + radius * sin(start_rad);
+  // Normalize startAngle into [0, 360)
+  float normStart = fmod((float)startAngle, 360.0f);
+  if (normStart < 0) normStart += 360.0f;
 
-  Point last = {static_cast<int16_t>(start_x), static_cast<int16_t>(start_y)};
+  // Compute arc span, normalized into (0, 360]
+  float arcSpan = fmod((float)(endAngle - startAngle), 360.0f);
+  if (arcSpan <= 0) arcSpan += 360.0f;  // 0 input → full circle
+
+  // Move to start position
+  float start_rad = normStart * Config::OUR_PI / 180.0f;
+  Point last = {
+      static_cast<int16_t>(lround(center.x + radius * cos(start_rad))),
+      static_cast<int16_t>(lround(center.y + radius * sin(start_rad)))
+  };
 
   StatusCode status = Motion::moveTo(last);
   if (status != StatusCode::OK) {
@@ -149,17 +159,17 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   }
 
   delay(250);
-
   Motion::penDown();
-
   delay(1000);
 
+  // Compute step size from chord length
   float stepRad = 2.0f * asin(Config::ARC_SEGMENT_LEN / (2.0f * radius));
   float stepDeg = stepRad * 180.0f / Config::OUR_PI;
   float arcStep = max(0.1f, stepDeg);
 
-  for (float a = startAngle + arcStep; a <= endAngle; a += arcStep) {
-    float rad = a * Config::OUR_PI / 180.0f;
+  // Iterate over arc span
+  for (float a = arcStep; a <= arcSpan; a += arcStep) {
+    float rad = (normStart + a) * Config::OUR_PI / 180.0f;
     Point next = {
         static_cast<int16_t>(lround(center.x + radius * cos(rad))),
         static_cast<int16_t>(lround(center.y + radius * sin(rad)))
@@ -169,15 +179,18 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
 
     status = Motion::smoothMove(next);
     if (status != StatusCode::OK) {
-        Serial.println("[ARC] Incremental move failed");
-        return status;
+      Serial.println("[ARC] Incremental move failed");
+      return status;
     }
     last = next;
   }
 
-  float end_rad = endAngle * static_cast<float>(Config::OUR_PI) / 180.0f;
-  Point end_point = {static_cast<int16_t>(lround(center.x + radius * cos(static_cast<double>(end_rad)))),
-                     static_cast<int16_t>(lround(center.y + radius * sin(static_cast<double>(end_rad))))};
+  // Always explicitly move to the exact end point
+  float end_rad = (normStart + arcSpan) * Config::OUR_PI / 180.0f;
+  Point end_point = {
+      static_cast<int16_t>(lround(center.x + radius * cos(end_rad))),
+      static_cast<int16_t>(lround(center.y + radius * sin(end_rad)))
+  };
   if (last.x != end_point.x || last.y != end_point.y) {
     status = Motion::smoothMove(end_point);
     if (status != StatusCode::OK) {
@@ -187,11 +200,10 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   }
 
   delay(250);
-
   Motion::penUp();
   Motion::home();
 
-  Serial.println("[ARC] Template complete");
+  Serial.println("[ARC] Arc complete");
   return StatusCode::OK;
 }
 
@@ -241,7 +253,7 @@ StatusCode logo() {
   line(Point {149, 020}, Point {157, 020});
   Motion::home();
   line(Point {155, 45}, Point {60, 114});
-  circle(Point {65, 123}, 10);
+  arc(Point {65, 123}, 10, 120, 250);
   line(Point {57, 130}, Point {90, 180});
   line(Point {90, 180}, Point {14, 250});
   line(Point {14, 250}, Point {90, 193});
