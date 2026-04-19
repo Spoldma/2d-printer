@@ -165,7 +165,10 @@ StatusCode moveTo(const Point &target) {
     delay(1);
   }
 
-  PlotterState::setPosition(target);
+  const double k = 1.0 / Config::MM_TO_STEP;
+  PlotterState::addPhysicalDelta(
+      (dx >= 0 ? 1.0 : -1.0) * static_cast<double>(steps.x) * k,
+      (dy >= 0 ? 1.0 : -1.0) * static_cast<double>(steps.y) * k);
   Serial.println("[MOVE] Motion complete");
   return StatusCode::OK;
 }
@@ -191,10 +194,11 @@ StatusCode smoothMove(const Point &target) {
   int32_t ay = static_cast<int32_t>(steps.y);
 
   int8_t sx = (dxPlot > 0) ? 1 : (dxPlot < 0 ? -1 : 0);
-  int8_t sy = (dyPlot > 0) ? 1 : (dyPlot < 0 ? -1 : 0);
+  // Match moveTo() / Stepper_StartNonBlocking(MOTOR_2, ..., yDir, ...):
+  // positive plotter dy uses dir 0 (LOW), negative dy uses dir 1 (HIGH).
+  int8_t sy = (dyPlot > 0) ? -1 : (dyPlot < 0 ? 1 : 0);
 
   if (ax == 0 && ay == 0) {
-    PlotterState::setPosition(target);
     Serial.println("[MOVE] Already at target");
     return StatusCode::OK;
   }
@@ -227,7 +231,10 @@ StatusCode smoothMove(const Point &target) {
   
   digitalWrite(Config::M1_ENB, HIGH);
 
-  PlotterState::setPosition(target);
+  const double k = 1.0 / Config::MM_TO_STEP;
+  PlotterState::addPhysicalDelta(
+      (dxPlot >= 0 ? 1.0 : -1.0) * static_cast<double>(steps.x) * k,
+      (dyPlot >= 0 ? 1.0 : -1.0) * static_cast<double>(steps.y) * k);
   Serial.println("[MOVE] Motion complete");
   return StatusCode::OK;
 }
