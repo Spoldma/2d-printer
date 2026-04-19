@@ -128,7 +128,7 @@ StatusCode moveTo(const Point &target) {
   StepIntervals intervals = calculateStepIntervals(steps);
 
   uint8_t xDir = (dx >= 0) ? 1 : 0;
-  uint8_t yDir = (dy >= 0) ? 1 : 0;
+  uint8_t yDir = (dy >= 0) ? 0 : 1;
 
   Serial.print("[MOVE] Current ");
   Serial.print(current.x);
@@ -186,7 +186,7 @@ StatusCode smoothMove(const Point &target) {
     int dy = abs(target.y - current.y);
 
     int sx = (target.x >= current.x) ? 1 : -1;
-    int sy = (target.y >= current.y) ? 1 : -1;
+    int sy = (target.y >= current.y) ? -1 : 1;
 
     int err = dx - dy;
 
