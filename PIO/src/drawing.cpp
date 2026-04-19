@@ -142,7 +142,9 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   int32_t start_x = center.x + radius * cos(start_rad);
   int32_t start_y = center.y + radius * sin(start_rad);
 
-  StatusCode status = Motion::moveTo(Point {static_cast<int16_t>(start_x), static_cast<int16_t>(start_y)});
+  Point last = {static_cast<int16_t>(start_x), static_cast<int16_t>(start_y)};
+
+  StatusCode status = Motion::moveTo(last);
   if (status != StatusCode::OK) {
     Serial.println("[ARC] Move to start failed");
     return status;
@@ -154,23 +156,25 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
 
   delay(1000);
 
-  Point last = {static_cast<int16_t>(start_x), static_cast<int16_t>(start_y)};
+  float stepRad = 2.0f * asin(Config::ARC_SEGMENT_LEN / (2.0f * radius));
+  float stepDeg = stepRad * 180.0f / Config::OUR_PI;
+  float arcStep = max(0.1f, stepDeg);
 
-  for (float a = startAngle; a <= endAngle; a += Config::ARC_STEP_DEG) {
-      float rad = a * Config::OUR_PI / 180.0;
-      Point next = {
-          static_cast<int16_t>(lround(center.x + radius * cos(rad))),
-          static_cast<int16_t>(lround(center.y + radius * sin(rad)))
-      };
+  for (float a = startAngle + arcStep; a <= endAngle; a += arcStep) {
+    float rad = a * Config::OUR_PI / 180.0f;
+    Point next = {
+        static_cast<int16_t>(lround(center.x + radius * cos(rad))),
+        static_cast<int16_t>(lround(center.y + radius * sin(rad)))
+    };
 
-      if (next.x == last.x && next.y == last.y) continue; // skip duplicate points
+    if (next.x == last.x && next.y == last.y) continue;
 
-      StatusCode status = Motion::smoothMove(next);
-      if (status != StatusCode::OK) {
-          Serial.println("[ARC] Incremental move failed");
-          return status;
-      }
-      last = next;
+    status = Motion::smoothMove(next);
+    if (status != StatusCode::OK) {
+        Serial.println("[ARC] Incremental move failed");
+        return status;
+    }
+    last = next;
   }
 
   delay(250);
