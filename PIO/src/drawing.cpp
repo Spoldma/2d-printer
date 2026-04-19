@@ -4,6 +4,7 @@
 
 #include "motion.h"
 #include "config.h"
+#include "plotter_state.h"
 
 namespace Drawing {
 StatusCode dot(const Point &at) {
@@ -180,6 +181,12 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
   delay(250);
 
   Motion::penUp();
+
+  float end_rad = endAngle * Config::OUR_PI / 180.0;
+  int32_t end_x = center.x + radius * cos(end_rad);
+  int32_t end_y = center.y + radius * sin(end_rad);
+
+  PlotterState::setPosition(Point {static_cast<int16_t>(lround(end_x)), static_cast<int16_t>(lround(end_y))});
 
   Serial.println("[ARC] Template complete");
   return StatusCode::OK;
