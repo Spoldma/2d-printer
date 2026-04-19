@@ -199,61 +199,13 @@ StatusCode smoothMove(const Point &target) {
         if (e2 > -dy) {
             err -= dy;
             current.x += sx;
-            Stepper_stepOnceWithDir(MOTOR1, sx);
+            Stepper_StepOnceWithDir(MOTOR_1, sx > 0 ? 1 : 0);
         }
 
         if (e2 < dx) {
             err += dx;
             current.y += sy;
-            Stepper_stepOnceWithDir(MOTOR2, sy);
-        }
-
-        // control speed here
-        delayMicroseconds(Config::STEP_INTERVAL_US);
-    }
-
-    PlotterState::setPosition(target);
-    Serial.println("[MOVE] Motion complete");
-    return StatusCode::OK;
-}
-
-StatusCode smoothMove(const Point &target) {
-    Point current = PlotterState::getPosition();
-
-    Serial.print("[MOVE] Request to ");
-    Serial.print(target.x);
-    Serial.print(",");
-    Serial.println(target.y);
-
-    if (!isPointInRange(target)) {
-      Serial.println("[MOVE] Target out of range");
-      return StatusCode::ERR_RANGE;
-    }
-
-    int dx = abs(target.x - current.x);
-    int dy = abs(target.y - current.y);
-
-    int sx = (target.x >= current.x) ? 1 : -1;
-    int sy = (target.y >= current.y) ? 1 : -1;
-
-    int err = dx - dy;
-
-    while (true) {
-        if (current.x == target.x && current.y == target.y)
-            break;
-
-        int e2 = 2 * err;
-
-        if (e2 > -dy) {
-            err -= dy;
-            current.x += sx;
-            Stepper_stepOnceWithDir(MOTOR1, sx);
-        }
-
-        if (e2 < dx) {
-            err += dx;
-            current.y += sy;
-            Stepper_stepOnceWithDir(MOTOR2, sy);
+            Stepper_StepOnceWithDir(MOTOR_2, sy > 0 ? 1 : 0);
         }
 
         // control speed here

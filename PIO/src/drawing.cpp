@@ -35,15 +35,8 @@ StatusCode line(const Point &start, const Point &end) {
   Serial.print(",");
   Serial.println(end.y);
 
-  Serial.println("[LINE] Homing before line");
-  StatusCode status = Motion::home();
-  if (status != StatusCode::OK) {
-    Serial.println("[LINE] Homing failed");
-    return status;
-  }
-
   Serial.println("[LINE] Moving to line start");
-  status = Motion::moveTo(start);
+  StatusCode status = Motion::moveTo(start);
   if (status != StatusCode::OK) {
     Serial.println("[LINE] Move to start failed");
     return status;
@@ -161,16 +154,23 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
 
   delay(1000);
 
+  Point last = {static_cast<int16_t>(start_x), static_cast<int16_t>(start_y)};
+
   for (float a = startAngle; a <= endAngle; a += Config::ARC_STEP_DEG) {
       float rad = a * Config::OUR_PI / 180.0;
-      int32_t x = center.x + radius * cos(rad);
-      int32_t y = center.y + radius * sin(rad);
+      Point next = {
+          static_cast<int16_t>(lround(center.x + radius * cos(rad))),
+          static_cast<int16_t>(lround(center.y + radius * sin(rad)))
+      };
 
-      StatusCode status = Motion::smoothMove(Point {static_cast<int16_t>(lround(x)), static_cast<int16_t>(lround(y))});
+      if (next.x == last.x && next.y == last.y) continue; // skip duplicate points
+
+      StatusCode status = Motion::smoothMove(next);
       if (status != StatusCode::OK) {
-        Serial.println("[ARC] Incremental move failed");
-        return status;
+          Serial.println("[ARC] Incremental move failed");
+          return status;
       }
+      last = next;
   }
 
   delay(250);
