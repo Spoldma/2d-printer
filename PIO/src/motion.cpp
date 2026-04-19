@@ -170,53 +170,64 @@ StatusCode moveTo(const Point &target) {
 }
 
 StatusCode smoothMove(const Point &target) {
-    Point current = PlotterState::getPosition();
+  Point current = PlotterState::getPosition();
 
-    Serial.print("[MOVE] Request to ");
-    Serial.print(target.x);
-    Serial.print(",");
-    Serial.println(target.y);
+  Serial.print("[MOVE] Request to ");
+  Serial.print(target.x);
+  Serial.print(",");
+  Serial.println(target.y);
 
-    if (!isPointInRange(target)) {
-      Serial.println("[MOVE] Target out of range");
-      return StatusCode::ERR_RANGE;
-    }
+  if (!isPointInRange(target)) {
+    Serial.println("[MOVE] Target out of range");
+    return StatusCode::ERR_RANGE;
+  }
 
-    int dx = abs(target.x - current.x);
-    int dy = abs(target.y - current.y);
+  int32_t dxPlot = static_cast<int32_t>(target.x) - static_cast<int32_t>(current.x);
+  int32_t dyPlot = static_cast<int32_t>(target.y) - static_cast<int32_t>(current.y);
+  StepCount steps = calculateStepCount(static_cast<uint32_t>(labs(dxPlot)),
+                                         static_cast<uint32_t>(labs(dyPlot)));
+  int32_t ax = static_cast<int32_t>(steps.x);
+  int32_t ay = static_cast<int32_t>(steps.y);
 
-    int sx = (target.x >= current.x) ? 1 : -1;
-    int sy = (target.y >= current.y) ? -1 : 1;
+  int8_t sx = (dxPlot > 0) ? 1 : (dxPlot < 0 ? -1 : 0);
+  int8_t sy = (dyPlot > 0) ? 1 : (dyPlot < 0 ? -1 : 0);
 
-    int err = dx - dy;
+  if (ax == 0 && ay == 0) {
+    PlotterState::setPosition(target);
+    Serial.println("[MOVE] Already at target");
+    return StatusCode::OK;
+  }
+
+  int32_t x = 0;
+  int32_t y = 0;
+  int32_t err = ax - ay;
 
     digitalWrite(Config::M1_ENB, LOW);
-    while (true) {
-        if (current.x == target.x && current.y == target.y)
-            break;
-
-        int e2 = 2 * err;
-
-        if (e2 > -dy) {
-            err -= dy;
-            current.x += sx;
-            Stepper_StepOnceWithDir(MOTOR_1, sx);
-        }
-
-        if (e2 < dx) {
-            err += dx;
-            current.y += sy;
-            Stepper_StepOnceWithDir(MOTOR_2, sy);
-        }
-
-        // control speed here
-        delayMicroseconds(Config::STEP_INTERVAL_US);
+  while (true) {
+    if (x == ax && y == ay) {
+      break;
     }
+
+    int32_t e2 = 2 * err;
+
+    if (e2 > -ay) {
+      err -= ay;
+      x += 1;
+      Stepper_StepOnceWithDir(MOTOR_1, sx);
+    }
+    if (e2 < ax) {
+      err += ax;
+      y += 1;
+      Stepper_StepOnceWithDir(MOTOR_2, sy);
+    }
+
+    delayMicroseconds(Config::STEP_INTERVAL_US);
+  }
     digitalWrite(Config::M1_ENB, HIGH);
 
-    PlotterState::setPosition(target);
-    Serial.println("[MOVE] Motion complete");
-    return StatusCode::OK;
+  PlotterState::setPosition(target);
+  Serial.println("[MOVE] Motion complete");
+  return StatusCode::OK;
 }
 
 StatusCode penUp() {
