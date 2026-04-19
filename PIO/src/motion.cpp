@@ -202,7 +202,7 @@ StatusCode smoothMove(const Point &target) {
   int32_t y = 0;
   int32_t err = ax - ay;
 
-    digitalWrite(Config::M1_ENB, LOW);
+  digitalWrite(Config::M1_ENB, LOW);
   while (true) {
     if (x == ax && y == ay) {
       break;
@@ -223,7 +223,8 @@ StatusCode smoothMove(const Point &target) {
 
     delayMicroseconds(Config::STEP_INTERVAL_US);
   }
-    digitalWrite(Config::M1_ENB, HIGH);
+  
+  digitalWrite(Config::M1_ENB, HIGH);
 
   PlotterState::setPosition(target);
   Serial.println("[MOVE] Motion complete");

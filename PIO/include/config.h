@@ -42,6 +42,7 @@ static const uint8_t HOME_Y_TOWARD_SWITCH_DIR = 1;
 
 static const double OUR_PI = 2*std::acos(0.0);
 static const float ARC_STEP_DEG = 1.0;
+static const float ARC_SEGMENT_LEN = 1.0f;
 }  // namespace Config
 
 #endif
