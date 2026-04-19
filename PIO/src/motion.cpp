@@ -1,6 +1,7 @@
 #include "motion.h"
 
 #include <Arduino.h>
+#include <cmath>
 #include <Servo.h>
 
 #include "config.h"
@@ -226,7 +227,29 @@ StatusCode smoothMove(const Point &target) {
   
   digitalWrite(Config::M1_ENB, HIGH);
 
-  PlotterState::setPosition(target);
+  // Truncation in calculateStepCount means we may execute slightly fewer steps than
+  // the integer (target - current) delta implies. Sync state to actual motion so
+  // open paths (e.g. partial arcs) do not drift from the motors.
+  const double inv = 1.0 / Config::MM_TO_STEP;
+  const double nx =
+      static_cast<double>(current.x) + static_cast<double>(sx * ax) * inv;
+  const double ny =
+      static_cast<double>(current.y) + static_cast<double>(sy * ay) * inv;
+  int32_t ix = lround(nx);
+  int32_t iy = lround(ny);
+  if (ix < Config::X_MIN) {
+    ix = Config::X_MIN;
+  } else if (ix > Config::X_MAX) {
+    ix = Config::X_MAX;
+  }
+  if (iy < Config::Y_MIN) {
+    iy = Config::Y_MIN;
+  } else if (iy > Config::Y_MAX) {
+    iy = Config::Y_MAX;
+  }
+  PlotterState::setPosition(
+      {static_cast<int16_t>(ix), static_cast<int16_t>(iy)});
+
   Serial.println("[MOVE] Motion complete");
   return StatusCode::OK;
 }

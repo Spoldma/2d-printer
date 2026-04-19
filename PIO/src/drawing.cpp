@@ -4,7 +4,6 @@
 
 #include "motion.h"
 #include "config.h"
-#include "plotter_state.h"
 
 namespace Drawing {
 StatusCode dot(const Point &at) {
@@ -132,8 +131,6 @@ StatusCode circle(const Point &center, int16_t radius) {
 StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
                int16_t endAngle) {
   Serial.println("[ARC] Start command");
-  (void)startAngle;
-  (void)endAngle;
   if (radius < 0) {
     Serial.println("[ARC] Invalid radius");
     return StatusCode::ERR_RANGE;
@@ -178,15 +175,20 @@ StatusCode arc(const Point &center, int16_t radius, int16_t startAngle,
     last = next;
   }
 
+  float end_rad = endAngle * static_cast<float>(Config::OUR_PI) / 180.0f;
+  Point end_point = {static_cast<int16_t>(lround(center.x + radius * cos(static_cast<double>(end_rad)))),
+                     static_cast<int16_t>(lround(center.y + radius * sin(static_cast<double>(end_rad))))};
+  if (last.x != end_point.x || last.y != end_point.y) {
+    status = Motion::smoothMove(end_point);
+    if (status != StatusCode::OK) {
+      Serial.println("[ARC] Move to arc end failed");
+      return status;
+    }
+  }
+
   delay(250);
 
   Motion::penUp();
-
-  float end_rad = endAngle * Config::OUR_PI / 180.0;
-  int32_t end_x = center.x + radius * cos(end_rad);
-  int32_t end_y = center.y + radius * sin(end_rad);
-
-  PlotterState::setPosition(Point {static_cast<int16_t>(lround(end_x)), static_cast<int16_t>(lround(end_y))});
 
   Serial.println("[ARC] Template complete");
   return StatusCode::OK;
